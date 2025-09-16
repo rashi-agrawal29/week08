@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: product-service-container
-        image: sit722acrrashi.azurecr.io/product_service:latest
+        image: rashiweek09acr.azurecr.io/product_service:latest
 
         imagePullPolicy: Always
         ports:

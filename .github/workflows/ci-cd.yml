@@ -23,25 +23,22 @@ jobs:
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
 
-      - name: Build and Push Images
+      - name: Build and Push Images (amd64 only)
         run: |
-          # Build images with both SHA and latest tags
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/product_service:${{ github.sha }} ./backend/product_service
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/order_service:${{ github.sha }} ./backend/order_service
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }} ./frontend
+          docker buildx build --platform linux/amd64 \
+            -t ${{ secrets.ACR_LOGIN_SERVER }}/product_service:${{ github.sha }} \
+            -t ${{ secrets.ACR_LOGIN_SERVER }}/product_service:latest \
+            ./backend/product_service --push
 
-          # Tag images as latest
-          docker tag ${{ secrets.ACR_LOGIN_SERVER }}/product_service:${{ github.sha }} ${{ secrets.ACR_LOGIN_SERVER }}/product_service:latest
-          docker tag ${{ secrets.ACR_LOGIN_SERVER }}/order_service:${{ github.sha }} ${{ secrets.ACR_LOGIN_SERVER }}/order_service:latest
-          docker tag ${{ secrets.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }} ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
+          docker buildx build --platform linux/amd64 \
+            -t ${{ secrets.ACR_LOGIN_SERVER }}/order_service:${{ github.sha }} \
+            -t ${{ secrets.ACR_LOGIN_SERVER }}/order_service:latest \
+            ./backend/order_service --push
 
-          # Push both SHA and latest tags
-          docker push ${{ secrets.ACR_LOGIN_SERVER }}/product_service:${{ github.sha }}
-          docker push ${{ secrets.ACR_LOGIN_SERVER }}/product_service:latest
-          docker push ${{ secrets.ACR_LOGIN_SERVER }}/order_service:${{ github.sha }}
-          docker push ${{ secrets.ACR_LOGIN_SERVER }}/order_service:latest
-          docker push ${{ secrets.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }}
-          docker push ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
+          docker buildx build --platform linux/amd64 \
+            -t ${{ secrets.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }} \
+            -t ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest \
+            ./frontend --push
 
   deploy:
     needs: build-and-test
