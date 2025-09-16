@@ -25,12 +25,23 @@ jobs:
 
       - name: Build and Push Images
         run: |
+          # Build images with both SHA and latest tags
           docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/product_service:${{ github.sha }} ./backend/product_service
           docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/order_service:${{ github.sha }} ./backend/order_service
           docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }} ./frontend
+
+          # Tag images as latest
+          docker tag ${{ secrets.ACR_LOGIN_SERVER }}/product_service:${{ github.sha }} ${{ secrets.ACR_LOGIN_SERVER }}/product_service:latest
+          docker tag ${{ secrets.ACR_LOGIN_SERVER }}/order_service:${{ github.sha }} ${{ secrets.ACR_LOGIN_SERVER }}/order_service:latest
+          docker tag ${{ secrets.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }} ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
+
+          # Push both SHA and latest tags
           docker push ${{ secrets.ACR_LOGIN_SERVER }}/product_service:${{ github.sha }}
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/product_service:latest
           docker push ${{ secrets.ACR_LOGIN_SERVER }}/order_service:${{ github.sha }}
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/order_service:latest
           docker push ${{ secrets.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }}
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
 
   deploy:
     needs: build-and-test
@@ -39,15 +50,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
 
       - name: Set up AKS context
         uses: azure/aks-set-context@v3
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-          cluster-name: ${{ secrets.AKS_CLUSTER_NAME }}
           resource-group: ${{ secrets.AKS_RESOURCE_GROUP }}
+          cluster-name: ${{ secrets.AKS_CLUSTER_NAME }}
 
       - name: Create Kubernetes Secrets
         run: |
@@ -57,4 +72,4 @@ jobs:
             --from-literal=AZURE_STORAGE_ACCOUNT_KEY=${{ secrets.AZURE_STORAGE_ACCOUNT_KEY }} --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Deploy to AKS
-        run: kubectl apply -f week08/k8s/
+        run: kubectl apply -f k8s/
